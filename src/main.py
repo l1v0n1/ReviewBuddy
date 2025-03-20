@@ -19,11 +19,11 @@ def main():
     logger.info("Starting ReviewBuddy")
     
     # Get GitHub context
-    github_token = os.environ.get('INPUT_GITHUB_TOKEN')
+    github_token = os.environ.get('INPUT_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
     config_path = os.environ.get('INPUT_CONFIG_PATH', '.reviewbuddy.yml')
     
     if not github_token:
-        logger.error("GitHub token is required")
+        logger.error("GitHub token is required. Set INPUT_GITHUB_TOKEN or GITHUB_TOKEN environment variable.")
         sys.exit(1)
     
     try:
