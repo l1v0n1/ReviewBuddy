@@ -62,7 +62,7 @@ def main():
     except (ValueError, KeyError, ImportError) as e:
         logger.error("Error running ReviewBuddy: %s", str(e))
         sys.exit(1)
-    except Exception as e:  # Still need this to catch unexpected errors
+    except Exception as e:  # Keep broad exception for now but improve logging
         logger.error("Unexpected error running ReviewBuddy: %s", str(e))
         sys.exit(1)
 

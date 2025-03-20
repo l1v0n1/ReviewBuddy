@@ -45,7 +45,7 @@ def load_config(config_path, github):
                 
     except yaml.YAMLError as e:
         logger.error("Failed to parse configuration file: %s", str(e))
-        raise ValueError("Failed to parse configuration file: {}".format(str(e)))
+        raise ValueError("Failed to parse configuration file: {}".format(str(e))) from e
     except Exception as e:  # Keep broad exception for now but improve logging
         logger.error("Unexpected error loading configuration: %s", str(e))
         raise
@@ -106,7 +106,7 @@ def validate_config(config):
         ValueError: If configuration is invalid
     """
     if config['model_provider'] not in ['api', 'ollama']:
-        logger.warning(f"Invalid model_provider '{config['model_provider']}'. Using 'api' as default.")
+        logger.warning("Invalid model_provider '%s'. Using 'api' as default.", config['model_provider'])
         config['model_provider'] = 'api'
     
     if config['model_provider'] == 'api' and 'api_key' not in config['api']:

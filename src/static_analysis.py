@@ -193,10 +193,12 @@ def run_pylint(file_list, temp_dir, severity_threshold):
                             'message': issue.get('message', ''),
                             'severity': severity
                         })
-            except json.JSONDecodeError:
-                logger.error("Failed to parse pylint output")
+            except json.JSONDecodeError as e:
+                logger.error("Failed to parse pylint output: %s", str(e))
     except subprocess.SubprocessError as e:
         logger.error("Error running pylint: %s", str(e))
+    except OSError as e:
+        logger.error("OS error while running pylint: %s", str(e))
     except Exception as e:  # Keep broad exception for now but improve logging
         logger.error("Unexpected error running pylint: %s", str(e))
     
@@ -244,10 +246,12 @@ def run_flake8(file_list, temp_dir, severity_threshold):
                                 'message': issue.get('text', ''),
                                 'severity': severity
                             })
-            except json.JSONDecodeError:
-                logger.error("Failed to parse flake8 output")
+            except json.JSONDecodeError as e:
+                logger.error("Failed to parse flake8 output: %s", str(e))
     except subprocess.SubprocessError as e:
         logger.error("Error running flake8: %s", str(e))
+    except OSError as e:
+        logger.error("OS error while running flake8: %s", str(e))
     except Exception as e:  # Keep broad exception for now but improve logging
         logger.error("Unexpected error running flake8: %s", str(e))
     
@@ -342,10 +346,12 @@ def run_eslint(file_list, temp_dir, severity_threshold, language):
                                 'message': message.get('message', ''),
                                 'severity': severity
                             })
-            except json.JSONDecodeError:
-                logger.error("Failed to parse eslint output")
+            except json.JSONDecodeError as e:
+                logger.error("Failed to parse eslint output: %s", str(e))
     except subprocess.SubprocessError as e:
         logger.error("Error running eslint: %s", str(e))
+    except OSError as e:
+        logger.error("OS error while running eslint: %s", str(e))
     except Exception as e:  # Keep broad exception for now but improve logging
         logger.error("Unexpected error running eslint: %s", str(e))
     

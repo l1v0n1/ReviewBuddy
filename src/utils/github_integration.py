@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import logging
-import requests
 from github import Github, GithubException
 
 logger = logging.getLogger('reviewbuddy.github_integration')
@@ -60,7 +59,15 @@ class GithubIntegration:
         try:
             pr = self.repo.get_pull(pr_number)
             files = list(pr.get_files())
-            diff_content = pr.get_diff()
+            
+            # Get the diff content
+            diff_content = ""
+            for file in files:
+                diff_content += f"File: {file.filename}\n"
+                diff_content += f"Status: {file.status}\n"
+                diff_content += f"Additions: {file.additions}, Deletions: {file.deletions}\n"
+                diff_content += f"Patch:\n{file.patch if file.patch else 'No patch available'}\n\n"
+            
             return diff_content, files
         except GithubException as e:
             logger.error("Failed to get PR files: %s", str(e))
