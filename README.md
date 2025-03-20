@@ -66,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run ReviewBuddy
-        uses: l1v0n1/reviewbuddy@v1
+        uses: l1v0n1/reviewbuddy@v1.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           config-path: .reviewbuddy.yml
@@ -101,4 +101,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+Created by [l1v0n1](https://github.com/l1v0n1) 
