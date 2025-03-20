@@ -22,8 +22,8 @@ def get_ai_provider(config):
     elif provider_type == 'ollama':
         return OllamaProvider(config['ollama'])
     else:
-        logger.error(f"Unknown model provider type: {provider_type}")
-        raise ValueError(f"Unknown model provider type: {provider_type}")
+        logger.error("Unknown model provider type: %s", provider_type)
+        raise ValueError("Unknown model provider type: {}".format(provider_type))
 
 class AIProvider:
     """Base class for AI providers."""

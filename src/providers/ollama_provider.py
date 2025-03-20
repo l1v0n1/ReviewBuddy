@@ -17,7 +17,7 @@ class OllamaProvider(AIProvider):
         """
         super().__init__(config)
         self.base_url = config.get('base_url', 'http://localhost:11434')
-        self.model_name = config.get('ollama_model', 'llama3.2')
+        self.model_name = config.get('ollama_model', 'llama3')
     
     def analyze_pr(self, diff_content, files):
         """
@@ -37,7 +37,7 @@ class OllamaProvider(AIProvider):
             # Truncate if too long
             max_tokens = 8000  # Adjust based on model's context window
             if len(prompt) > max_tokens:
-                logger.warning(f"Prompt too long ({len(prompt)} tokens), truncating")
+                logger.warning("Prompt too long (%d tokens), truncating", len(prompt))
                 prompt = prompt[:max_tokens] + "...[truncated]"
             
             # Call Ollama
@@ -46,10 +46,16 @@ class OllamaProvider(AIProvider):
             # Parse the response
             return self._parse_response(response)
             
-        except Exception as e:
-            logger.error(f"Error analyzing PR with Ollama provider: {str(e)}")
+        except (requests.RequestException, ConnectionError) as e:
+            logger.error("Error analyzing PR with Ollama provider: %s", str(e))
             return {
-                "summary": f"Error: Failed to analyze PR with Ollama provider: {str(e)}",
+                "summary": "Error: Failed to analyze PR with Ollama provider: {}".format(str(e)),
+                "suggestions": []
+            }
+        except Exception as e:
+            logger.error("Unexpected error analyzing PR with Ollama provider: %s", str(e))
+            return {
+                "summary": "Error: Failed to analyze PR with Ollama provider: {}".format(str(e)),
                 "suggestions": []
             }
     
@@ -86,11 +92,11 @@ class OllamaProvider(AIProvider):
             if 'response' in result:
                 return result['response']
             else:
-                logger.error(f"Unexpected response format from Ollama: {result}")
+                logger.error("Unexpected response format from Ollama: %s", result)
                 raise ValueError("Unexpected response format from Ollama")
                 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error calling Ollama API: {str(e)}")
+        except requests.RequestException as e:
+            logger.error("Error calling Ollama API: %s", str(e))
             raise
     
     def _check_ollama_availability(self):
@@ -110,7 +116,8 @@ class OllamaProvider(AIProvider):
             model_names = [model.get('name') for model in models]
             
             if self.model_name not in model_names:
-                logger.warning(f"Model {self.model_name} not found in Ollama. Available models: {model_names}")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Ollama not available at {self.base_url}: {str(e)}")
-            raise ConnectionError(f"Ollama not available at {self.base_url}: {str(e)}") 
+                logger.warning("Model %s not found in Ollama. Available models: %s", 
+                              self.model_name, model_names)
+        except requests.RequestException as e:
+            logger.error("Ollama not available at %s: %s", self.base_url, str(e))
+            raise ConnectionError("Ollama not available at {}: {}".format(self.base_url, str(e))) from e 

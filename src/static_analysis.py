@@ -4,7 +4,7 @@ import tempfile
 import subprocess
 import logging
 import json
-from pathlib import Path
+import requests
 
 logger = logging.getLogger('reviewbuddy.static_analysis')
 
@@ -96,17 +96,16 @@ def download_files(files, temp_dir):
             with open(file_path, 'w', encoding='utf-8') as f:
                 if hasattr(file, 'raw_url') and file.raw_url:
                     try:
-                        import requests
-                        response = requests.get(file.raw_url)
+                        response = requests.get(file.raw_url, timeout=30)
                         response.raise_for_status()
                         f.write(response.text)
-                    except Exception as e:
-                        logger.error(f"Error downloading file {file.filename}: {str(e)}")
+                    except (requests.RequestException, IOError) as e:
+                        logger.error("Error downloading file %s: %s", file.filename, str(e))
                         continue
                 elif hasattr(file, 'content') and file.content:
                     f.write(file.content)
                 else:
-                    logger.warning(f"No content available for file {file.filename}")
+                    logger.warning("No content available for file %s", file.filename)
                     continue
 
 def run_tool(tool, language, file_list, temp_dir, config):
@@ -143,10 +142,13 @@ def run_tool(tool, language, file_list, temp_dir, config):
         elif tool == 'eslint' and language in ['javascript', 'typescript']:
             result['issues'] = run_eslint(file_list, temp_dir, severity_threshold, language)
         else:
-            logger.warning(f"Unsupported tool {tool} for language {language}")
+            logger.warning("Unsupported tool %s for language %s", tool, language)
             return None
-    except Exception as e:
-        logger.error(f"Error running {tool} on {language} files: {str(e)}")
+    except subprocess.SubprocessError as e:
+        logger.error("Error running %s on %s files: %s", tool, language, str(e))
+        return None
+    except Exception as e:  # Keep broad exception for now but improve logging
+        logger.error("Unexpected error running %s on %s files: %s", tool, language, str(e))
         return None
     
     return result
@@ -300,7 +302,7 @@ def run_eslint(file_list, temp_dir, severity_threshold, language):
                 eslintrc['extends'].append('plugin:@typescript-eslint/recommended')
                 eslintrc['plugins'] = ['@typescript-eslint']
             
-            with open(os.path.join(temp_dir, '.eslintrc.json'), 'w') as f:
+            with open(os.path.join(temp_dir, '.eslintrc.json'), 'w', encoding='utf-8') as f:
                 json.dump(eslintrc, f)
         
         # Install necessary typescript parser if analyzing TypeScript

@@ -59,8 +59,11 @@ def main():
         
         logger.info("ReviewBuddy completed successfully")
         
-    except Exception as e:
-        logger.error(f"Error running ReviewBuddy: {str(e)}")
+    except (ValueError, KeyError, ImportError) as e:
+        logger.error("Error running ReviewBuddy: %s", str(e))
+        sys.exit(1)
+    except Exception as e:  # Still need this to catch unexpected errors
+        logger.error("Unexpected error running ReviewBuddy: %s", str(e))
         sys.exit(1)
 
 if __name__ == "__main__":

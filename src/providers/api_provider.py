@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-import os
 import requests
 import logging
-import json
 from src.ai_integration import AIProvider
 
 logger = logging.getLogger('reviewbuddy.providers.api')
 
 class APIProvider(AIProvider):
-    """Provider for remote API-based AI models."""
+    """Provider for API-based AI models."""
     
     def __init__(self, config):
         """
@@ -18,15 +16,12 @@ class APIProvider(AIProvider):
             config (dict): API-specific configuration
         """
         super().__init__(config)
-        self.api_endpoint = config.get('api_endpoint', 'https://api.openai.com/v1')
-        self.model_name = config.get('model_name', 'gpt-4o')
-        
-        # Get API key from config or environment
         self.api_key = config.get('api_key')
-        if not self.api_key:
-            self.api_key = os.environ.get('REVIEWBUDDY_API_KEY')
-            if not self.api_key:
-                logger.warning("No API key provided for API provider")
+        self.api_url = config.get('api_url')
+        self.model_name = config.get('model_name', 'gpt-4')
+        
+        if not self.api_key or not self.api_url:
+            raise ValueError("API key and URL are required for API provider")
     
     def analyze_pr(self, diff_content, files):
         """
@@ -39,13 +34,6 @@ class APIProvider(AIProvider):
         Returns:
             dict: Analysis results with summary and suggestions
         """
-        if not self.api_key:
-            logger.error("Cannot analyze PR: No API key provided")
-            return {
-                "summary": "Error: No API key provided for the AI model.",
-                "suggestions": []
-            }
-        
         try:
             # Prepare the prompt
             prompt = self._prepare_prompt(diff_content)
@@ -53,19 +41,25 @@ class APIProvider(AIProvider):
             # Truncate if too long
             max_tokens = 8000  # Adjust based on model's context window
             if len(prompt) > max_tokens:
-                logger.warning(f"Prompt too long ({len(prompt)} tokens), truncating")
+                logger.warning("Prompt too long (%d tokens), truncating", len(prompt))
                 prompt = prompt[:max_tokens] + "...[truncated]"
             
-            # Call the API
+            # Call API
             response = self._call_api(prompt)
             
             # Parse the response
             return self._parse_response(response)
             
-        except Exception as e:
-            logger.error(f"Error analyzing PR with API provider: {str(e)}")
+        except (requests.RequestException, ConnectionError) as e:
+            logger.error("Error analyzing PR with API provider: %s", str(e))
             return {
-                "summary": f"Error: Failed to analyze PR with API provider: {str(e)}",
+                "summary": "Error: Failed to analyze PR with API provider: {}".format(str(e)),
+                "suggestions": []
+            }
+        except Exception as e:
+            logger.error("Unexpected error analyzing PR with API provider: %s", str(e))
+            return {
+                "summary": "Error: Failed to analyze PR with API provider: {}".format(str(e)),
                 "suggestions": []
             }
     
@@ -80,44 +74,32 @@ class APIProvider(AIProvider):
             str: Response from the API
         """
         headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
         }
         
         data = {
             "model": self.model_name,
             "messages": [
-                {"role": "system", "content": "You are a helpful code review assistant."},
+                {"role": "system", "content": "You are a code review assistant. Analyze the provided code changes and provide constructive feedback."},
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.5,
             "max_tokens": 2000
         }
         
-        # Determine the appropriate endpoint
-        if 'openai.com' in self.api_endpoint:
-            endpoint = f"{self.api_endpoint}/chat/completions"
-        else:
-            # For other API providers, adjust as needed
-            endpoint = self.api_endpoint
-        
-        response = requests.post(endpoint, headers=headers, json=data, timeout=60)
-        response.raise_for_status()
-        
-        result = response.json()
-        
-        # Extract content based on API response format
         try:
-            # OpenAI format
-            if 'choices' in result and len(result['choices']) > 0:
-                if 'message' in result['choices'][0]:
-                    return result['choices'][0]['message']['content']
-                elif 'text' in result['choices'][0]:
-                    return result['choices'][0]['text']
-        except Exception as e:
-            logger.error(f"Error parsing API response: {str(e)}")
-            raise
-        
-        # If we couldn't parse the response
-        logger.error(f"Unexpected API response format: {json.dumps(result)[:100]}...")
-        raise ValueError("Unexpected API response format") 
+            response = requests.post(self.api_url, json=data, headers=headers, timeout=120)
+            response.raise_for_status()
+            
+            result = response.json()
+            
+            if 'choices' in result and result['choices']:
+                return result['choices'][0]['message']['content']
+            else:
+                logger.error("Unexpected response format from API: %s", result)
+                raise ValueError("Unexpected response format from API")
+                
+        except requests.RequestException as e:
+            logger.error("Error calling API: %s", str(e))
+            raise 
