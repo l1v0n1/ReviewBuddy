@@ -2,28 +2,55 @@
 import logging
 from src.providers.api_provider import APIProvider
 from src.providers.ollama_provider import OllamaProvider
+import requests
+import os
 
 logger = logging.getLogger('reviewbuddy.ai_integration')
 
 def get_ai_provider(config):
     """
-    Get the AI provider based on configuration.
+    Get the appropriate AI provider based on configuration.
     
     Args:
         config (dict): Configuration dictionary
         
     Returns:
-        object: AI provider instance
+        AIProvider: The configured AI provider
     """
     provider_type = config.get('model_provider', 'api')
     
+    # Try to use Ollama if configured
+    if provider_type == 'ollama':
+        try:
+            # Check if Ollama is available
+            base_url = config.get('ollama', {}).get('base_url', 'http://localhost:11434')
+            response = requests.get(f"{base_url}/api/tags", timeout=5)
+            response.raise_for_status()
+            
+            # If we got here, Ollama is available
+            logger.info("Using Ollama provider")
+            return OllamaProvider(config.get('ollama', {}))
+        except (requests.RequestException, ConnectionError) as e:
+            logger.warning("Ollama not available, falling back to API provider: %s", str(e))
+            provider_type = 'api'
+    
+    # Use API provider as fallback or if configured
     if provider_type == 'api':
-        return APIProvider(config['api'])
-    elif provider_type == 'ollama':
-        return OllamaProvider(config['ollama'])
-    else:
-        logger.error("Unknown model provider type: %s", provider_type)
-        raise ValueError("Unknown model provider type: {}".format(provider_type))
+        # Check if API key is available
+        api_key = config.get('api', {}).get('api_key')
+        if not api_key:
+            api_key = os.environ.get('REVIEWBUDDY_API_KEY')
+            if api_key:
+                config['api']['api_key'] = api_key
+                logger.info("Using API key from environment variable")
+            else:
+                logger.warning("No API key found in config or environment, review may fail")
+        
+        logger.info("Using API provider")
+        return APIProvider(config.get('api', {}))
+    
+    # If we got here, something is wrong with the configuration
+    raise ValueError(f"Unsupported model provider: {provider_type}")
 
 class AIProvider:
     """Base class for AI providers."""

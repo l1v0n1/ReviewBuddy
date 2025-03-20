@@ -17,7 +17,7 @@ ollama:
   # Base URL for the Ollama service
   base_url: 'http://localhost:11434'
   # Ollama model to use for code review
-  ollama_model: 'llama3'
+  ollama_model: 'gemma3'
 
 # Static Analysis Configuration
 static_analysis:

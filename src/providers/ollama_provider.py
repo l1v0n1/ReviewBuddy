@@ -18,6 +18,7 @@ class OllamaProvider(AIProvider):
         super().__init__(config)
         self.base_url = config.get('base_url', 'http://localhost:11434')
         self.model_name = config.get('ollama_model', 'llama3')
+        self.timeout = config.get('ai', {}).get('ollama', {}).get('timeout', 30)
     
     def analyze_pr(self, diff_content, files):
         """
@@ -42,23 +43,48 @@ class OllamaProvider(AIProvider):
                     "prompt": prompt,
                     "stream": False
                 },
-                timeout=30
+                timeout=self.timeout
             )
             response.raise_for_status()
             
             # Parse response
             result = response.json()
-            return self._parse_response(result.get('response', ''))
+            if 'response' not in result:
+                raise ValueError("Invalid response from Ollama")
             
+            # Parse the response into structured format
+            return self._parse_response(result['response'])
+            
+        except requests.Timeout:
+            logger.error("Timeout while communicating with Ollama")
+            return {
+                'summary': 'Analysis timed out. Please review changes manually.',
+                'suggestions': [
+                    'Consider running local static analysis tools.',
+                    'Check for potential security issues.',
+                    'Verify code style and best practices.'
+                ]
+            }
         except requests.RequestException as e:
             logger.error("Error communicating with Ollama: %s", str(e))
-            return {'error': str(e)}
-        except (OSError, IOError) as e:
-            logger.error("File system error: %s", str(e))
-            return {'error': str(e)}
+            return {
+                'summary': 'Unable to analyze changes. Please review manually.',
+                'suggestions': [
+                    'Consider running local static analysis tools.',
+                    'Check for potential security issues.',
+                    'Verify code style and best practices.'
+                ]
+            }
         except Exception as e:  # Keep broad exception for now but improve logging
-            logger.error("Unexpected error analyzing PR: %s", str(e))
-            return {'error': str(e)}
+            logger.error("Unexpected error in Ollama analysis: %s", str(e))
+            return {
+                'summary': 'Analysis failed. Please review changes manually.',
+                'suggestions': [
+                    'Consider running local static analysis tools.',
+                    'Check for potential security issues.',
+                    'Verify code style and best practices.'
+                ]
+            }
     
     def _call_ollama(self, prompt):
         """
@@ -122,3 +148,28 @@ class OllamaProvider(AIProvider):
         except requests.RequestException as e:
             logger.error("Ollama not available at %s: %s", self.base_url, str(e))
             raise ConnectionError("Ollama not available at {}: {}".format(self.base_url, str(e))) from e 
+
+    def _prepare_prompt(self, diff_content, files):
+        """
+        Prepare the prompt for the AI model.
+        
+        Args:
+            diff_content (str): The diff content of the PR
+            files (list): List of files in the PR
+            
+        Returns:
+            str: The prepared prompt
+        """
+        prompt = """You are a helpful code review assistant. Please analyze the following code changes and provide:
+1. A summary of the changes
+2. Potential issues or improvements
+3. Security considerations
+4. Performance implications
+
+Here are the changes to review:
+
+{diff}
+
+Please provide your analysis in a clear, structured format."""
+
+        return prompt.format(diff=diff_content) 

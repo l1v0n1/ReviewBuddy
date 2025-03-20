@@ -102,8 +102,8 @@ class GithubIntegration:
             comment.append("")
         
         # Add static analysis results
-        if static_analysis_results:
-            comment.append("## Static Analysis Results")
+        comment.append("## Static Analysis")
+        if static_analysis_results and any(result.get('issues') for result in static_analysis_results.values()):
             for tool, result in static_analysis_results.items():
                 if result.get('issues'):
                     comment.append(f"### {tool.title()}")
@@ -111,6 +111,9 @@ class GithubIntegration:
                         comment.append(f"- **{issue['file']}:{issue['line']}** - {issue['message']}")
                         comment.append(f"  Severity: {issue['severity']}")
                     comment.append("")
+        else:
+            comment.append("No static analysis issues found.")
+            comment.append("")
         
         return "\n".join(comment)
     

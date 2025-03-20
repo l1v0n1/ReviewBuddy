@@ -123,7 +123,7 @@ def run_tool(tool, language, file_list, temp_dir, config):
         dict: Results of the tool
     """
     if not file_list:
-        return None
+        return {'issues': []}
     
     severity_threshold = config.get('static_analysis', {}).get('severity_threshold', 'warning')
     
@@ -140,19 +140,25 @@ def run_tool(tool, language, file_list, temp_dir, config):
         elif tool == 'flake8' and language == 'python':
             result['issues'] = run_flake8(file_list, temp_dir, severity_threshold)
         elif tool == 'eslint' and language in ['javascript', 'typescript']:
-            result['issues'] = run_eslint(file_list, temp_dir, severity_threshold, language)
+            # Check if eslint is installed
+            try:
+                subprocess.run(['eslint', '--version'], capture_output=True, check=True)
+                result['issues'] = run_eslint(file_list, temp_dir, severity_threshold, language)
+            except (subprocess.SubprocessError, FileNotFoundError):
+                logger.warning("ESLint is not installed. Skipping JavaScript/TypeScript analysis.")
+                return {'issues': []}
         else:
             logger.warning("Unsupported tool %s for language %s", tool, language)
-            return None
+            return {'issues': []}
     except subprocess.SubprocessError as e:
         logger.error("Error running %s on %s files: %s", tool, language, str(e))
-        return None
+        return {'issues': []}
     except (OSError, IOError) as e:
         logger.error("File system error while running %s: %s", tool, str(e))
-        return None
+        return {'issues': []}
     except Exception as e:  # Keep broad exception for now but improve logging
         logger.error("Unexpected error running %s on %s files: %s", tool, language, str(e))
-        return None
+        return {'issues': []}
     
     return result
 

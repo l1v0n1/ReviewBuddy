@@ -34,6 +34,11 @@ class APIProvider(AIProvider):
         Returns:
             dict: Analysis results
         """
+        # If no API key, return a mock review
+        if not self.api_key:
+            logger.warning("No API key available, returning mock review")
+            return self._generate_mock_review(diff_content, files)
+            
         try:
             # Prepare the prompt
             prompt = self._prepare_prompt(diff_content, files)
@@ -108,3 +113,70 @@ class APIProvider(AIProvider):
         except requests.RequestException as e:
             logger.error("Error calling API: %s", str(e))
             raise 
+
+    def _prepare_prompt(self, diff_content, files):
+        """
+        Prepare the prompt for the AI model.
+        
+        Args:
+            diff_content (str): The diff content of the PR
+            files (list): List of files in the PR
+            
+        Returns:
+            str: The prepared prompt
+        """
+        prompt = """You are a helpful code review assistant. Please analyze the following code changes and provide:
+1. A summary of the changes
+2. Potential issues or improvements
+3. Security considerations
+4. Performance implications
+
+Here are the changes to review:
+
+{diff}
+
+Please provide your analysis in a clear, structured format."""
+
+        return prompt.format(diff=diff_content) 
+
+    def _generate_mock_review(self, diff_content, files):
+        """
+        Generate a mock review when no API key is available.
+        
+        Args:
+            diff_content (str): The diff content of the PR
+            files (list): List of files in the PR
+            
+        Returns:
+            dict: A mock analysis result
+        """
+        file_list = [f.get('filename', 'unknown') for f in files]
+        file_str = ', '.join(file_list) if file_list else "no files"
+        
+        return {
+            'summary': (
+                "⚠️ **This is an automated review.** ⚠️\n\n"
+                "ReviewBuddy couldn't connect to AI services. This is a basic analysis without AI assistance.\n\n"
+                f"Changes were detected in: {file_str}"
+            ),
+            'suggestions': [
+                {
+                    'title': 'Configure AI providers',
+                    'description': (
+                        "To get better reviews, either:\n"
+                        "1. Start Ollama locally (`ollama serve` and `ollama pull llama3`)\n"
+                        "2. Or set an API key via the REVIEWBUDDY_API_KEY environment variable"
+                    )
+                },
+                {
+                    'title': 'Review your code manually',
+                    'description': (
+                        "Without AI assistance, please consider:\n"
+                        "- Code style consistency\n"
+                        "- Error handling\n"
+                        "- Security implications\n"
+                        "- Test coverage"
+                    )
+                }
+            ]
+        } 
