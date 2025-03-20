@@ -21,7 +21,7 @@ Here's an example of ReviewBuddy in action:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/reviewbuddy.git
+git clone https://github.com/l1v0n1/reviewbuddy.git
 cd reviewbuddy
 ```
 
@@ -66,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run ReviewBuddy
-        uses: yourusername/reviewbuddy@v1
+        uses: l1v0n1/reviewbuddy@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           config-path: .reviewbuddy.yml
