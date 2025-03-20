@@ -2,7 +2,7 @@
 
 # AI Model Provider Configuration
 # Options: 'api' (for remote APIs like OpenAI) or 'ollama' (for local models)
-model_provider: 'api'
+model_provider: 'ollama'
 
 # API Provider Configuration (used when model_provider is 'api')
 api:
