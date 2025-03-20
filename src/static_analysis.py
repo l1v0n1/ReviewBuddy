@@ -195,8 +195,10 @@ def run_pylint(file_list, temp_dir, severity_threshold):
                         })
             except json.JSONDecodeError:
                 logger.error("Failed to parse pylint output")
-    except Exception as e:
-        logger.error(f"Error running pylint: {str(e)}")
+    except subprocess.SubprocessError as e:
+        logger.error("Error running pylint: %s", str(e))
+    except Exception as e:  # Keep broad exception for now but improve logging
+        logger.error("Unexpected error running pylint: %s", str(e))
     
     return issues
 
@@ -244,8 +246,10 @@ def run_flake8(file_list, temp_dir, severity_threshold):
                             })
             except json.JSONDecodeError:
                 logger.error("Failed to parse flake8 output")
-    except Exception as e:
-        logger.error(f"Error running flake8: {str(e)}")
+    except subprocess.SubprocessError as e:
+        logger.error("Error running flake8: %s", str(e))
+    except Exception as e:  # Keep broad exception for now but improve logging
+        logger.error("Unexpected error running flake8: %s", str(e))
     
     return issues
 
@@ -315,7 +319,7 @@ def run_eslint(file_list, temp_dir, severity_threshold, language):
                 subprocess.run(['npm', 'install', '--save-dev', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin'], 
                                cwd=temp_dir, capture_output=True, check=True)
             except subprocess.SubprocessError as e:
-                logger.warning(f"Could not install TypeScript plugins: {str(e)}")
+                logger.warning("Could not install TypeScript plugins: %s", str(e))
         
         # Run eslint with global installation
         cmd = ['eslint', '--format=json'] + file_paths
@@ -340,8 +344,10 @@ def run_eslint(file_list, temp_dir, severity_threshold, language):
                             })
             except json.JSONDecodeError:
                 logger.error("Failed to parse eslint output")
-    except Exception as e:
-        logger.error(f"Error running eslint: {str(e)}")
+    except subprocess.SubprocessError as e:
+        logger.error("Error running eslint: %s", str(e))
+    except Exception as e:  # Keep broad exception for now but improve logging
+        logger.error("Unexpected error running eslint: %s", str(e))
     
     return issues
 

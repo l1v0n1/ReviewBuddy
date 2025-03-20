@@ -2,66 +2,82 @@
 import os
 import yaml
 import logging
+from github import GithubException
 
 logger = logging.getLogger('reviewbuddy.config')
 
-DEFAULT_CONFIG = {
-    'model_provider': 'api',
-    'api': {
-        'api_endpoint': 'https://api.openai.com/v1',
-        'model_name': 'gpt-4o',
-    },
-    'ollama': {
-        'base_url': 'http://localhost:11434',
-        'ollama_model': 'llama3.2',
-    },
-    'static_analysis': {
-        'enabled': True,
-        'tools': {
-            'python': ['pylint', 'flake8'],
-            'javascript': ['eslint'],
-            'typescript': ['eslint'],
-        },
-        'severity_threshold': 'warning',
-    },
-    'comment_format': 'markdown',
-    'max_suggestions': 10,
-}
-
 def load_config(config_path, github):
     """
-    Load configuration from the specified path or use defaults.
+    Load configuration from file or repository.
     
     Args:
-        config_path (str): Path to the configuration file
+        config_path (str): Path to config file
         github (GithubIntegration): GitHub integration instance
         
     Returns:
-        dict: Merged configuration with defaults
+        dict: Configuration dictionary
     """
-    config = DEFAULT_CONFIG.copy()
-    
     try:
-        # Try to load the configuration file from the repository
-        config_content = github.get_file_content(config_path)
-        if config_content:
-            user_config = yaml.safe_load(config_content)
-            if user_config:
-                # Deep merge the user configuration with defaults
-                deep_merge(config, user_config)
-    except Exception as e:
-        logger.warning(f"Could not load configuration file '{config_path}': {str(e)}")
-        logger.info("Using default configuration")
+        # Try to load from file first
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+                logger.info("Loaded configuration from %s", config_path)
+                return config
+        
+        # Try to load from repository
+        try:
+            content = github.repo.get_contents(config_path)
+            if isinstance(content, list):
+                logger.error("%s is a directory, not a file", config_path)
+                raise ValueError("{} is a directory, not a file".format(config_path))
+            
+            config = yaml.safe_load(content.decoded_content.decode('utf-8'))
+            logger.info("Loaded configuration from repository")
+            return config
+        except GithubException as e:
+            if e.status == 404:
+                logger.warning("Configuration file %s not found, using defaults", config_path)
+                return get_default_config()
+            else:
+                logger.error("Failed to load configuration from repository: %s", str(e))
+                raise
+                
+    except yaml.YAMLError as e:
+        logger.error("Failed to parse configuration file: %s", str(e))
+        raise ValueError("Failed to parse configuration file: {}".format(str(e)))
+    except Exception as e:  # Keep broad exception for now but improve logging
+        logger.error("Unexpected error loading configuration: %s", str(e))
+        raise
+
+def get_default_config():
+    """
+    Get default configuration.
     
-    # Check for environment variables that might override config
-    api_key = os.environ.get('REVIEWBUDDY_API_KEY')
-    if api_key and config['model_provider'] == 'api':
-        config['api']['api_key'] = api_key
-    
-    # Validate configuration
-    validate_config(config)
-    
-    return config
+    Returns:
+        dict: Default configuration
+    """
+    return {
+        'model_provider': 'api',
+        'api': {
+            'model_name': 'gpt-4',
+            'api_key': os.environ.get('REVIEWBUDDY_API_KEY'),
+            'api_url': 'https://api.openai.com/v1/chat/completions'
+        },
+        'ollama': {
+            'base_url': 'http://localhost:11434',
+            'ollama_model': 'llama3'
+        },
+        'static_analysis': {
+            'enabled': True,
+            'severity_threshold': 'warning',
+            'tools': {
+                'python': ['pylint', 'flake8'],
+                'javascript': ['eslint'],
+                'typescript': ['eslint']
+            }
+        }
+    }
 
 def deep_merge(target, source):
     """
