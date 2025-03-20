@@ -3,7 +3,7 @@ import os
 import requests
 import logging
 import json
-from ..ai_integration import AIProvider
+from src.ai_integration import AIProvider
 
 logger = logging.getLogger('reviewbuddy.providers.api')
 

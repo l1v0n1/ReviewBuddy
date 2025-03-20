@@ -2,10 +2,10 @@
 import os
 import sys
 import logging
-from utils.config import load_config
-from utils.github_integration import GithubIntegration
-from static_analysis import run_static_analysis
-from ai_integration import get_ai_provider
+from src.utils.config import load_config
+from src.utils.github_integration import GithubIntegration
+from src.static_analysis import run_static_analysis
+from src.ai_integration import get_ai_provider
 
 # Configure logging
 logging.basicConfig(

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import requests
 import logging
-from ..ai_integration import AIProvider
+from src.ai_integration import AIProvider
 
 logger = logging.getLogger('reviewbuddy.providers.ollama')
 
