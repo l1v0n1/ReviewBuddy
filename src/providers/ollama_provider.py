@@ -21,43 +21,44 @@ class OllamaProvider(AIProvider):
     
     def analyze_pr(self, diff_content, files):
         """
-        Analyze a pull request using the Ollama provider.
+        Analyze a pull request using Ollama.
         
         Args:
-            diff_content (str): Content of the PR diff
+            diff_content (str): The diff content of the PR
             files (list): List of files in the PR
             
         Returns:
-            dict: Analysis results with summary and suggestions
+            dict: Analysis results
         """
         try:
             # Prepare the prompt
-            prompt = self._prepare_prompt(diff_content)
+            prompt = self._prepare_prompt(diff_content, files)
             
-            # Truncate if too long
-            max_tokens = 8000  # Adjust based on model's context window
-            if len(prompt) > max_tokens:
-                logger.warning("Prompt too long (%d tokens), truncating", len(prompt))
-                prompt = prompt[:max_tokens] + "...[truncated]"
+            # Get response from Ollama
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model_name,
+                    "prompt": prompt,
+                    "stream": False
+                },
+                timeout=30
+            )
+            response.raise_for_status()
             
-            # Call Ollama
-            response = self._call_ollama(prompt)
+            # Parse response
+            result = response.json()
+            return self._parse_response(result.get('response', ''))
             
-            # Parse the response
-            return self._parse_response(response)
-            
-        except (requests.RequestException, ConnectionError) as e:
-            logger.error("Error analyzing PR with Ollama provider: %s", str(e))
-            return {
-                "summary": "Error: Failed to analyze PR with Ollama provider: {}".format(str(e)),
-                "suggestions": []
-            }
-        except Exception as e:
-            logger.error("Unexpected error analyzing PR with Ollama provider: %s", str(e))
-            return {
-                "summary": "Error: Failed to analyze PR with Ollama provider: {}".format(str(e)),
-                "suggestions": []
-            }
+        except requests.RequestException as e:
+            logger.error("Error communicating with Ollama: %s", str(e))
+            return {'error': str(e)}
+        except (OSError, IOError) as e:
+            logger.error("File system error: %s", str(e))
+            return {'error': str(e)}
+        except Exception as e:  # Keep broad exception for now but improve logging
+            logger.error("Unexpected error analyzing PR: %s", str(e))
+            return {'error': str(e)}
     
     def _call_ollama(self, prompt):
         """

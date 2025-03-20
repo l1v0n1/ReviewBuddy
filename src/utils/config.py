@@ -6,6 +6,29 @@ from github import GithubException
 
 logger = logging.getLogger('reviewbuddy.config')
 
+# Default configuration
+DEFAULT_CONFIG = {
+    'model_provider': 'api',
+    'api': {
+        'model_name': 'gpt-4',
+        'api_key': os.environ.get('REVIEWBUDDY_API_KEY'),
+        'api_url': 'https://api.openai.com/v1/chat/completions'
+    },
+    'ollama': {
+        'base_url': 'http://localhost:11434',
+        'ollama_model': 'llama3'
+    },
+    'static_analysis': {
+        'enabled': True,
+        'severity_threshold': 'warning',
+        'tools': {
+            'python': ['pylint', 'flake8'],
+            'javascript': ['eslint'],
+            'typescript': ['eslint']
+        }
+    }
+}
+
 def load_config(config_path, github):
     """
     Load configuration from file or repository.
@@ -57,27 +80,7 @@ def get_default_config():
     Returns:
         dict: Default configuration
     """
-    return {
-        'model_provider': 'api',
-        'api': {
-            'model_name': 'gpt-4',
-            'api_key': os.environ.get('REVIEWBUDDY_API_KEY'),
-            'api_url': 'https://api.openai.com/v1/chat/completions'
-        },
-        'ollama': {
-            'base_url': 'http://localhost:11434',
-            'ollama_model': 'llama3'
-        },
-        'static_analysis': {
-            'enabled': True,
-            'severity_threshold': 'warning',
-            'tools': {
-                'python': ['pylint', 'flake8'],
-                'javascript': ['eslint'],
-                'typescript': ['eslint']
-            }
-        }
-    }
+    return DEFAULT_CONFIG.copy()
 
 def deep_merge(target, source):
     """

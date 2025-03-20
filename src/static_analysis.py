@@ -147,6 +147,9 @@ def run_tool(tool, language, file_list, temp_dir, config):
     except subprocess.SubprocessError as e:
         logger.error("Error running %s on %s files: %s", tool, language, str(e))
         return None
+    except (OSError, IOError) as e:
+        logger.error("File system error while running %s: %s", tool, str(e))
+        return None
     except Exception as e:  # Keep broad exception for now but improve logging
         logger.error("Unexpected error running %s on %s files: %s", tool, language, str(e))
         return None
