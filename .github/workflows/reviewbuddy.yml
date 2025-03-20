@@ -1,0 +1,21 @@
+name: ReviewBuddy Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Run ReviewBuddy
+        uses: ./  # Uses the action in the local repository
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          config_path: '.reviewbuddy.yml'
+        env:
+          REVIEWBUDDY_API_KEY: ${{ secrets.REVIEWBUDDY_API_KEY }} 

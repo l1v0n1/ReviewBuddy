@@ -1,0 +1,20 @@
+name: 'ReviewBuddy'
+description: 'AI-Powered Code Review Assistant for Pull Requests'
+author: 'l1v0n1'
+branding:
+  icon: 'eye'
+  color: 'blue'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API access'
+    required: true
+    default: ${{ github.token }}
+  config_path:
+    description: 'Path to the ReviewBuddy configuration file'
+    required: false
+    default: '.reviewbuddy.yml'
+  
+runs:
+  using: 'docker'
+  image: 'Dockerfile' 

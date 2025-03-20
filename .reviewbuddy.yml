@@ -1,0 +1,43 @@
+# ReviewBuddy Configuration File
+
+# AI Model Provider Configuration
+# Options: 'api' (for remote APIs like OpenAI) or 'ollama' (for local models)
+model_provider: 'api'
+
+# API Provider Configuration (used when model_provider is 'api')
+api:
+  # API endpoint for the AI service
+  api_endpoint: 'https://api.openai.com/v1'
+  # Model name to use for code review
+  model_name: 'gpt-4o'
+  # API key should be set via environment variable REVIEWBUDDY_API_KEY for security
+
+# Ollama Provider Configuration (used when model_provider is 'ollama')
+ollama:
+  # Base URL for the Ollama service
+  base_url: 'http://localhost:11434'
+  # Ollama model to use for code review
+  ollama_model: 'llama3'
+
+# Static Analysis Configuration
+static_analysis:
+  # Enable or disable static analysis
+  enabled: true
+  # Tools to use for each language
+  tools:
+    python:
+      - 'pylint'
+      - 'flake8'
+    javascript:
+      - 'eslint'
+    typescript:
+      - 'eslint'
+  # Minimum severity level to report (options: 'info', 'warning', 'error')
+  severity_threshold: 'warning'
+
+# Comment Format Configuration
+# Options: 'markdown', 'text'
+comment_format: 'markdown'
+
+# Maximum number of suggestions to include in the review
+max_suggestions: 10 
